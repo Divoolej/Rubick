@@ -1,2 +1,2 @@
 # Rubick
-A very simple HTTP written in Ruby
+A very simple HTTP server written in Ruby
