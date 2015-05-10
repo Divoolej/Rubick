@@ -38,3 +38,5 @@ build/
 /rubick.caret
 *.html
 *.htm
+*.js
+*.css
