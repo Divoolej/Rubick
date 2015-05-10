@@ -1,3 +1,17 @@
+# Copyright 2015 Wojciech Olejnik ("Divoolej")
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#   http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 require 'socket'
 
 class BadConfigException < Exception
@@ -26,6 +40,7 @@ class Rubick
           puts client_ip + " => " + message # log the request
           response = process_request message # process the request and create a response
           puts response
+          client.write response
           client.close # close connection
         end # Thread.start
       end # loop
@@ -50,7 +65,14 @@ class Rubick
       response += "Server: Rubick/#{VERSION}\n"
       response += "Content-Type: text/html\n"
       requested_file = request.split[1]
-      return requested_file
+      if requested_file[-1] == '/' then
+        requested_file += 'index.html'
+      end # if
+      file = File.new(@config['root'] + requested_file, 'r')
+      content = file.read
+      response += "Content-Length: #{content.length}\n\n"
+      response += content
+      return response
     end # process_request
     
     def load_config # loads the server configuration from the config file 'rubick.cfg'
