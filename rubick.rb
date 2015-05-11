@@ -69,7 +69,7 @@ class Rubick
       method = request.split[0] # retrieve the method name from the request
       if method == "GET" then # if the method is GET
         return http_get request # process the GET request
-      else if method == "HEAD" then # if the method is HEAD
+      elsif method == "HEAD" then # if the method is HEAD
         return http_head request # process the HEAD request
       else # other methods are not supported
         return 405_method_not_allowed method # in case of an unsupported method, return the appropriate status code in a response
@@ -117,25 +117,124 @@ class Rubick
       end
       
       if not File.readable? @config['root'] + requested_file then # check if the requested resource is readable
+        return 403_forbidden requested_file # if it's not, return the "403 FORBIDDEN" response
+      end
       
-      response = "HTTP/1.1 200 OK\n"
-      date = Time.now.gmtime.strftime("%a, %e %b %Y %H:%M:%S GMT\n")
-      response += date
-      response += "Connection: close\n"
-      response += "Server: Rubick/#{VERSION}\n"
+      content_type = recognize_content_type requested_file # recognize the content type of the resource
+      if content_type.nil? then # if the content type was not recognized
+        return 415_unsupported_media_type requested_file # return the "415 UNSUPPORTED MEDIA TYPE" response
+      end
       
-      content_type = recognize_conent_type requested_file
+      # serve the requested resource
+      response = "HTTP/1.1 200 OK\n" # the status message
+      date = Time.now.gmtime.strftime("%a, %e %b %Y %H:%M:%S GMT\n") # current time and date
+      response += date # ^
+      response += "Connection: close\n" # information that this response closes the connection with client
+      response += "Server: Rubick/#{VERSION}\n" # information about the server
       
       response += "Content-Type: #{content_type}\n"
-      
-      content = file.read
+      file = File.new @config['root'] + requested_file # open the requested file
+      content = file.read # read the content of the resource
       response += "Content-Length: #{content.length}\n\n"
-      file.close
+      file.close # close the file
       
-      return response
+      return response # return the complete header
     end # http_head
     
-    def load_config # loads the server configuration from the config file 'rubick.cfg'
+    def 404_not_found resource
+      response = "HTTP/1.1 404 Not Found\n" # the status message
+      date = Time.now.gmtime.strftime("%a, %e %b %Y %H:%M:%S GMT\n") # current time and date
+      response += date # ^
+      response += "Connection: close\n" # information that this response closes the connection with client
+      response += "Server: Rubick/#{VERSION}\n" # information about the server
+      response += "Content-Type: text/html\n"
+      if File.file? @config['root'] + '404.html' then # if there is a custom html file for the "404 Not Found" error
+        file = File.new @config['root'] + '404.html' # open the file
+        content = file.read # read the content of the resource
+        response += "Content-Length: #{content.length}\n\n"
+        file.close # close the file
+      else # otherwise, return a default error page
+        error = "<!DOCTYPE HTML><html><head><title>404 Not Found</title></head><body><h1>404 Not Found</h1><p>Sorry, but the requested resource: #{resource} was not found on the server.</p></body></html>"
+        response += "Content-Length: #{error.length}\n\n"
+        response += error
+      end
+      
+      return response # return the complete error response
+    end
+    
+    def 403_forbidden resource
+      response = "HTTP/1.1 403 Forbidden\n" # the status message
+      date = Time.now.gmtime.strftime("%a, %e %b %Y %H:%M:%S GMT\n") # current time and date
+      response += date # ^
+      response += "Connection: close\n" # information that this response closes the connection with client
+      response += "Server: Rubick/#{VERSION}\n" # information about the server
+      response += "Content-Type: text/html\n"
+      
+      error = "<!DOCTYPE HTML><html><head><title>403 Forbidden</title></head><body><h1>403 Forbidden</h1><p>Sorry, but you don't have the right to read the requested resource: #{resource}</p></body></html>"
+      response += "Content-Length: #{error.length}\n\n"
+      response += error
+      
+      return response
+    end
+    
+    def 415_unsupported_media_type resource
+      response = "HTTP/1.1 415 Unsupported Media Type\n" # the status message
+      date = Time.now.gmtime.strftime("%a, %e %b %Y %H:%M:%S GMT\n") # current time and date
+      response += date # ^
+      response += "Connection: close\n" # information that this response closes the connection with client
+      response += "Server: Rubick/#{VERSION}\n" # information about the server
+      response += "Content-Type: text/html\n"
+      
+      error = "<!DOCTYPE HTML><html><head><title>415 Unsupported Media Type</title></head><body><h1>415 Unsupported Media Type</h1><p>Sorry, but the type of the requested resource: #{resource} is not supported by the server.</p></body></html>"
+      response += "Content-Length: #{error.length}\n\n"
+      response += error
+      
+      return response
+    end
+    
+    
+    # This method generates the value for the "Content-Type" key in the HTTP response header based on the extension of the requested file
+    def recognize_content_type file
+      ext = file.split('.')[-1].downcase # extract the file's extension
+      if ext in ['jpg', 'jpeg'] then # image
+        return 'image/jpeg'
+      elsif ext == 'gif' then
+        return 'image/gif'
+      elsif ext == 'png' then
+        return 'image/png'
+      elsif ext == 'js' then # application
+        return 'application/js'
+      elsif ext == 'xhtml' then
+        return 'application/xhtml+xml'
+      elsif ext == 'json' then
+        return 'application/json'
+      elsif ext == 'mp3' then # audio
+        return 'audio/mpeg'
+      elsif ext == 'wma' then
+        return 'audio/x-ms-wma'
+      elsif ext == 'wav' then
+        return 'audio/x-wav'
+      elsif ext == 'txt' then # text
+        return 'text/plain'
+      elsif ext in ['html', 'htm'] then
+        return 'text/html'
+      elsif ext == 'css' then
+        return 'text/css'
+      elsif ext == 'xml' then
+        return 'text/xml'
+      elsif ext == 'mpeg' then # video
+        return 'video/mpeg'
+      elsif ext == 'mp4' then
+        return 'video/mp4'
+      elsif ext == 'wmv' then
+        return 'video/x-ms-wmv'
+      else
+        return nil
+    end # recognize_content_type
+    
+    
+    # This method loads the server configuration from the config file 'rubick.cfg'
+    def load_config
       cfg = File.new('rubick.cfg', 'r') # open the config file
       begin
         loop do # loop through the config file
