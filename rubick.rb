@@ -18,7 +18,7 @@ class BadConfigException < Exception
 end
 
 class Rubick
-  self::VERSION = 0.4
+  self::VERSION = 0.5
   
   public
   
@@ -72,7 +72,7 @@ class Rubick
       elsif method == "HEAD" then # if the method is HEAD
         return http_head request # process the HEAD request
       else # other methods are not supported
-        return 405_method_not_allowed method # in case of an unsupported method, return the appropriate status code in a response
+        return method_not_allowed_405 method # in case of an unsupported method, return the appropriate status code in a response
       end # if
     end #process_request
     
@@ -113,16 +113,16 @@ class Rubick
       end # if
       
       if not File.exist? @config['root'] + requested_file then # check whether the file exists
-        return 404_not_found requested_file # if it doesn't, return the "404 NOT FOUND" response
+        return not_found_404 requested_file # if it doesn't, return the "404 NOT FOUND" response
       end
       
       if not File.readable? @config['root'] + requested_file then # check if the requested resource is readable
-        return 403_forbidden requested_file # if it's not, return the "403 FORBIDDEN" response
+        return forbidden_403 requested_file # if it's not, return the "403 FORBIDDEN" response
       end
       
       content_type = recognize_content_type requested_file # recognize the content type of the resource
       if content_type.nil? then # if the content type was not recognized
-        return 415_unsupported_media_type requested_file # return the "415 UNSUPPORTED MEDIA TYPE" response
+        return unsupported_media_type_415 requested_file # return the "415 UNSUPPORTED MEDIA TYPE" response
       end
       
       # serve the requested resource
@@ -141,7 +141,8 @@ class Rubick
       return response # return the complete header
     end # http_head
     
-    def 404_not_found resource
+    
+    def not_found_404 resource
       response = "HTTP/1.1 404 Not Found\n" # the status message
       date = Time.now.gmtime.strftime("%a, %e %b %Y %H:%M:%S GMT\n") # current time and date
       response += date # ^
@@ -162,7 +163,8 @@ class Rubick
       return response # return the complete error response
     end
     
-    def 403_forbidden resource
+    
+    def forbidden_403 resource
       response = "HTTP/1.1 403 Forbidden\n" # the status message
       date = Time.now.gmtime.strftime("%a, %e %b %Y %H:%M:%S GMT\n") # current time and date
       response += date # ^
@@ -177,7 +179,8 @@ class Rubick
       return response
     end
     
-    def 415_unsupported_media_type resource
+    
+    def unsupported_media_type_415 resource
       response = "HTTP/1.1 415 Unsupported Media Type\n" # the status message
       date = Time.now.gmtime.strftime("%a, %e %b %Y %H:%M:%S GMT\n") # current time and date
       response += date # ^
@@ -193,10 +196,26 @@ class Rubick
     end
     
     
+    def method_not_allowed_405 method
+      response = "HTTP/1.1 405 Method Not Allowed\n" # the status message
+      date = Time.now.gmtime.strftime("%a, %e %b %Y %H:%M:%S GMT\n") # current time and date
+      response += date # ^
+      response += "Connection: close\n" # information that this response closes the connection with client
+      response += "Server: Rubick/#{VERSION}\n" # information about the server
+      response += "Content-Type: text/html\n"
+      
+      error = "<!DOCTYPE HTML><html><head><title>405 Method Not Allowed</title></head><body><h1>405 Method Not Allowed</h1><p>Sorry, but method #{method} is not allowed by the server.</p></body></html>"
+      response += "Content-Length: #{error.length}\n\n"
+      response += error
+      
+      return response
+    end
+    
+    
     # This method generates the value for the "Content-Type" key in the HTTP response header based on the extension of the requested file
     def recognize_content_type file
       ext = file.split('.')[-1].downcase # extract the file's extension
-      if ext in ['jpg', 'jpeg'] then # image
+      if ext == 'jpg' or ext == 'jpeg' then # image
         return 'image/jpeg'
       elsif ext == 'gif' then
         return 'image/gif'
@@ -216,7 +235,7 @@ class Rubick
         return 'audio/x-wav'
       elsif ext == 'txt' then # text
         return 'text/plain'
-      elsif ext in ['html', 'htm'] then
+      elsif ext == 'html' or ext == 'htm' then
         return 'text/html'
       elsif ext == 'css' then
         return 'text/css'
@@ -230,6 +249,7 @@ class Rubick
         return 'video/x-ms-wmv'
       else
         return nil
+      end
     end # recognize_content_type
     
     

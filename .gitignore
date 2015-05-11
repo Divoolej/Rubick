@@ -36,7 +36,3 @@ build/
 
 #caret project file
 /rubick.caret
-*.html
-*.htm
-*.js
-*.css

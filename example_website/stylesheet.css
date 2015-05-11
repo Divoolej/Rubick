@@ -1,0 +1,9 @@
+.container {
+  background-color: blue;
+  padding: 5px;
+}
+
+p {
+  color: red;
+  font-size: 24px;
+}
