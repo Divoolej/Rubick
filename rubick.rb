@@ -222,6 +222,8 @@ class Rubick
         return 'image/gif'
       elsif ext == 'png' then
         return 'image/png'
+      elsif ext == 'ico' then
+        return 'image/x-icon'
       elsif ext == 'js' then # application
         return 'application/js'
       elsif ext == 'xhtml' then
