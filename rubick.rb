@@ -18,7 +18,7 @@ class BadConfigException < Exception
 end
 
 class Rubick
-  self::VERSION = 0.51
+  self::VERSION = 0.53
   
   public
   
@@ -34,11 +34,15 @@ class Rubick
       puts @config
       port = @config['port'].to_i
       addr = @config['address']
-      @socket = TCPServer.new(addr, port) # create the server socket
+      @socket = Socket.new(Socket::AF_INET, Socket::SOCK_STREAM, 0) # create the server socket
+      @socket.bind(Socket.sockaddr_in(port, addr))
+      @socket.listen(24)
       puts "Rubick HTTP Server v#{VERSION} running at #{addr} on port #{port}."
       loop do
-        Thread.start(@socket.accept) do |client| # for each client start a new thread which handles their requests
-          client_ip = client.remote_address.ip_address.to_s
+        Thread.start(@socket.accept) do |client_arr| # for each client start a new thread which handles their requests
+          client = client_arr[0]
+          client_addrinfo = client_arr[1]
+          client_ip = client_addrinfo.ip_address
           puts "#{client_ip} is accepted" # log that a client connected
           message = client.recv(2048) # read the request
           puts client_ip + " => " + message # log the request
