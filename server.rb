@@ -52,7 +52,11 @@ def read_params
         end # if
       when '-a'
         if !value.nil? then # TODO: Check if a valid address
-          result['address'] = value
+          if value.to_s.downcase == 'any' then
+            result['address'] = ''
+          else
+            result['address'] = value
+          end
           i += 2
         elsif value.nil?
           raise BadParameterException, "Parameter Error. (#{param.to_s}). No address specified."

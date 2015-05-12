@@ -18,7 +18,7 @@ class BadConfigException < Exception
 end
 
 class Rubick
-  self::VERSION = 0.5
+  self::VERSION = 0.51
   
   public
   
@@ -43,7 +43,8 @@ class Rubick
           message = client.recv(2048) # read the request
           puts client_ip + " => " + message # log the request
           response = process_request message # process the request and create a response
-          client.write response
+          puts http_head message # DEBUG
+          client.write response # send the response to client
           client.close # close connection
         end # Thread.start
       end # loop
